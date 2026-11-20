@@ -1141,6 +1141,24 @@ class InstallationSheetDialog(QDialog):
             QMessageBox.critical(self, "Load Error", f"Could not load form:\n{exc}")
             return
 
+        current_sheet_id = (self._current_sheet_def or {}).get("id", "")
+        saved_sheet_id = data.get("sheet_id", "")
+        if saved_sheet_id != current_sheet_id:
+            saved_sheet_def = next(
+                (s for s in self._sheets if s.get("id", "") == saved_sheet_id), None
+            )
+            saved_name = (saved_sheet_def or {}).get("name", saved_sheet_id or "unknown template")
+            current_name = (self._current_sheet_def or {}).get("name", current_sheet_id or "unknown template")
+            QMessageBox.critical(
+                self, "Template Mismatch",
+                "This JSON file was saved from a different installation sheet "
+                f"template ('{saved_name}') and cannot be loaded into the "
+                f"currently open template ('{current_name}').\n\n"
+                "Please reopen the dialog and select the matching template, "
+                "then try loading this file again.",
+            )
+            return
+
         field_values: Dict[str, Any] = data.get("field_values", {})
         pictures: List[str] = data.get("pictures", [])
 
