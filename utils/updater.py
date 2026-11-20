@@ -29,6 +29,24 @@ import requests
 from packaging import version as pkg_version
 from config.app_config import APP_VERSION, VERSION_MANIFEST_URL
 
+# Corporate VPNs/proxies (e.g. Cato) perform TLS inspection and re-sign
+# traffic with a root CA that is installed in the Windows certificate store
+# but is NOT part of the bundled `certifi` CA list that `requests` uses by
+# default. That mismatch causes SSL verification to fail with
+# "self-signed certificate in certificate chain" even though the connection
+# is legitimately trusted by the OS.
+#
+# `truststore` patches Python's ssl module to validate certificates using
+# the OS-native trust store (Windows Certificate Store / macOS Keychain /
+# Linux system CAs) instead of the bundled certifi CA list. This lets the
+# updater trust any corporate root CA the IT department has already
+# installed on the machine, without disabling certificate verification.
+try:
+    import truststore
+    truststore.inject_into_ssl()
+except Exception as e:
+    print(f"[Updater] truststore not available, falling back to certifi CAs: {e}")
+
 CHECK_TIMEOUT = 5  # seconds for version check request
 
 def get_install_dir():
